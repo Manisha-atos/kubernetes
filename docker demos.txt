@@ -1,0 +1,118 @@
+each container we expose on diff port no.
+
+we need to handle multiple container through multiple workstation . to manager this we use docker swarm as 
+Dock swarm is a container orchistration tool(adding /remoing conatiners).for ex we want to manage 100 containers , to manage scaling of containers is done with container orch tool.dock swarm is orchistration tool is basically a cluster ,group of m/c where all containers are running 
+
+docker swarm is a cluster where all containers on diff wokstation is running
+docer network ls
+dicker node ls
+
+docker run --name a-apche -d -p 1111:80 httpd
+docker run --name b-apche -d -p 2222:80 httpd
+docker run --name c-apche -d -p 3333:80 httpd
+docker run --name d-apche -d -p 4444:80 httpd
+
+docker run --name a-nginx -p  1111:80 -d nginx
+docker run --name b-nginx -p  2222:80 -d nginx
+docker run --name c-nginx -p  3333:80 -d nginx
+
+docker exec -it a-nginx bash echo "<h1>Hello A-NgInx Server </h1>" > /usr/share/nginx/html/index.html
+Demo1 Ingress n/w
+create multiple instances ie, nodes.
+container created on one machin is not accessble to other machine , to establish the communication create ingress nw
+
+autoscaling is not in docker swarm which is possible in kubernetes
+
+image d4
+
+bridge --port forwardization required 
+
+host --no need of port forwardization, internal port can be used for multiple cotainers 
+
+none -- can not access container outsid ethe nw
+
+d4
+
+d5 --exposing container on different port so that it will be accessible outsid eth container
+
+step 1:enable docker swarm at 192.168.0.11
+docker swarm init --advertise-addr=<ip>
+docker swarm init --advertise-addr=192.168.0.28
+docker node ls
+step 2 :add other nodes to docker swarm (192.168.0.13)
+cmd 1:
+docker swarm join-token worker
+o/p:o add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-52pv2bec08tk7k3915qoxroclmksoesa1mmo8mpzcdun641ok3-ckj5b86q4kgu7uc5sb9mptkjr 192.168.0.11:2377
+
+docker swarm join --token SWMTKN-1-44pdj689ee9uo5tdaxatjk3k8z2rots6jr3vaphajw92q6udqh-1uolez9zufvb0y7xnzyrse279 192.168.0.5:2377
+
+
+    docker swarm join --token SWMTKN-1-3zvi9ygqm87xndr8c8qyzzs017uu08tk99wgyu555x9ktxfpfa-2lv852bwxn8puw81nq1sxcukf 192.168.0.28:2377
+
+    docker swarm join --token SWMTKN-1-37ad1aefa3b7cc5d15dff9903afbd55c5eff26e914a129fffd446e532741dec5f 192.168.0.11:2377
+
+Error response from daemon: remote CA does not match fingerprint. Expected: 7ad1aefa3b7cc5d15dff9903afbd55c5eff26e914a129fffd446e532741dec5f
+step 3:(on master node)
+docker node ls 
+step 4:(creating all master nodes)
+docker node promote node1 node2 node4
+
+docker network ls -->new nw ingress is added.
+create a service
+https://docs.docker.com/engine/reference/commandline/service_create/
+docker service ls
+docker service create --name p-nginx --replicas=4 -p 4444:80 nginx
+
+internally load balancing will happen between various m/c
+
+docker service --help
+docker service ps p-nginx
+
+
+616bea65ccdd
+
+we cannot expose container on same port with in the node so we are using ingress nw
+docker service scale p-nginx=6
+docker service scale p-nginx=3
+
+docker service rm
+
+out f 6 3 containers are running. the node which is shutdow still can show 1111 page due to load balancing.
+
+Kubernetes:
+host application in form of container in automation.
+
+other than docker we can use other technologies like container D ,RKT 
+always will have 1 master node and app is deployed on worker node.
+
+master Node--mananging the nodes , addition ,removal of nodes in the cluster.running containers on a node .scheduling 
+
+worker nodes :where application is deployed as containers . on every worker node container engine(docker,cobtainer d ,rkt) need to be installed.docker is most popular so k8s by default uses docker.
+
+1.etcd(meta data abt nodes in k8s cluster):is a key value database ,node details are stored in etcd cluster.
+
+2.kube api-server:through docker cli we are  communicating with docker engine ,exposing the apis to external user to communicate with k8s cluster.It will expose some end points through which user will communicate with k8s cluster .api -server will internally communicate with other componenets of master and worker node. it can be in commandline (cui) or gui.
+
+3.kube controller manager: 2 manager one is node manager and other is replication manager 1.node manager is reponsible for if any node is down then where to move the existing container or do it need to add a new node all this is taken care by node manager.
+
+2.replication controller will ensure that at any point of time the replication count shd maintained if we have set it as 4 then it has to be 4
+
+4.kube schedular:
+scedule the containers. when to create , what type of container ,on which worker node it will be deployed is decided by kube schedular.
+
+worker node:
+kublet(meta data abt containers on worker nodes)- is like a captain on a ship available on each worker node.hold information abt each node link how many containers running on node , status . kube api internally will communicate with kublet to fetch the data abt the running container on worker node.periodically it will connect with kublet.kube api is periodically getting the heart beats from the kublet. communication is unidirectional .
+
+kube-proxy:container are by default not accessible outside the node. It will ensures all rules are placed to expose the runnng container so that it will be accessble by other nodes .publishing the continer.unabling communication between containers on different node. 
+for ex database container on one node can communicate with an application deployed on other node.
+
+container runtime engine :docker  . worker node host app in the form of container . to run the container we need container runtime eng
+in K8 eveything is container all componenets are container.etdc , kublet etc..
+
+
+
+
+
+

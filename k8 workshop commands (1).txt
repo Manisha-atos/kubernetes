@@ -1,0 +1,227 @@
+--use the online environment
+https://www.katacoda.com/courses/kubernetes/launch-single-node-cluster
+
+commands
+--start minikube on mac os
+minikube start --vm-driver=hyperkit
+
+--check that server is running
+minikube status
+
+--check the version
+kubectl version
+
+--get the cluster Info
+kubectl cluster-info
+
+--list the nodes in the cluster, same node willbe master and worker 
+kubectl get nodes
+
+--get all containers
+$docker ps
+--list all the objects
+kubectl get all
+kubectl get all -n <namespace_name>
+
+--list all the namespaces (It it a logicalgrouping of objects in kubernetes)
+kubectl get namespaces
+
+--list the resources from a particular namespace
+kubectl get pods --namespace kube-system
+
+--you can also create your namespace
+kubectl create namespace manisha
+
+--list the pods in the node
+$ kubectl get pods
+
+--get detailed info on pod using the wide attribute
+kubectl get po -o wide
+
+--list all the services
+$ kubectl get svc
+$ kubectl get services
+
+--list all the deployments
+kubectl get deployment
+
+--in docker  we created the service using
+
+
+
+kubectl get pods -n kube-system (all podes are in kube-system namespace)
+
+kubectl --help
+kubectl attch --help--help abt attach command
+
+
+docker service create p-nginx --replicas=2 -p 1111:80 nginx
+--equivalent command in kubernetesas below, but it will not create service it will deployment 
+kubectl run p-nginx --image=nginx --replicas=4 --port=80
+
+kubectl scale deployment p-nginx --replicas=7 
+or assign a namespace
+kubectl run p-nginx --image=nginx --replicas=4 --port=80 -n manisha
+kubectl run p-nginx --image=nginx --port=80 -n manisha
+--describe deployment
+kubectl describe deployment <deployment_name>
+eg. kubectl describe deployment p-nginx
+
+--create a deployment using create deployment
+kubectl create deployment nginx-depl --image=nginx
+
+--list the replicaset
+kubectl get replicaset
+
+--By creating a deployment a autogenrated configuration file is created
+--you can edit this file to change  the image version or number of replicas
+$ kubectl edit deployment nginx-depl
+
+edit to change the image version eg. nginx:1.16
+save the file
+Observe that it should now create a new container and terminate the old one
+$ kubectl get pod
+
+--Modify the replicas
+$ kubectl get replicaset
+------------------------------------------------------------
+--basic kubectl commands(this will create a deployment with the name p-nginx)
+kubectl run p-nginx --image=nginx --replicas=2 --port=80
+
+
+
+==>How kubernetes maintains replication
+--try delete a container created by above command
+kubectl delete pod {pod-name}
+kubectl get all
+
+==>Executing a container inside the pod
+kubectl exec -it {pod-name} -- bin/bash
+eg.
+kubectl exec -it p-nginx-5d89df5b6d-mqf6m -- bin/bash
+
+root@p-nginx-5d89df5b6d-mqf6m:/# curl http://localhost:80
+
+--change the contents of the index.html 
+root@p-nginx-5d89df5b6d-mqf6m:/# echo "Hi Nginx" > usr/share/nginx/html/index.html
+root@p-nginx-5d89df5b6d-mqf6m:/# curl http://localhost:80
+root@p-nginx-5d89df5b6d-mqf6m:/# exit
+
+--similarly change another container in the pod
+root@p-nginx-5d89df5b6d-mqf6m:/# echo "Hi Welcome" > usr/share/nginx/html/index.html
+root@p-nginx-5d89df5b6d-mqf6m:/# curl http://localhost:80
+root@p-nginx-5d89df5b6d-mqf6m:/# exit
+
+--3 Types of services are clusterIp,Nodeport and loadbalancer
+--to make this containers available to external world we need to create service
+--in the below command if we skip giving service it will by default create the clusterIP service, 
+
+clusterip service is internal to the cluster, at the cluster level
+$kubectl expose deployment p-nginx --name=cp-service
+
+$kubectl get svc
+
+--lets expose the service as type of nodePort
+$kubectl expose deployment p-nginx --name=np-service --type=Nodeport
+
+--lets expose the service as type of LoadBalancer(Will work only in cloud environment)
+$kubectl expose deployment p-nginx --name=lb-service --type=LoadBalancer
+
+$kubectl get svc
+
+--to find which pod is running on which node
+kubectl get po -o wide
+
+
+--eg. To see the output of nginx server at the cluster level, not going inside the pod container,outside the node
+
+$ curl clusterip:port
+eg. $curl 10.103.214.132:80
+
+--hit the above command several times , it should automatically do the load balancing between the two replicas, you should get the different output of index.html
+
+--now access the container using the nodeport, get the port of the minikube node
+--in a single node cluster all the pods are running on the same node
+kubectl get po -o wide
+
+--to aceess the service using nodeport
+$curl http://minikube:nodeport_ip
+eg.
+$curl http://minikube:32260
+
+-- accessing the service via browser
+click the + dashboard, in the web preview,use the same port number in the text box and click display port,here also it should do the same load balancing
+
+
+==> deleting a deployment
+kubectl delete deployment p-ngix
+-----------------------------------------------------------
+--exposing containers using services
+kubectl expose deployment p-nginx --name=cp-service
+
+
+
+kubectl get svc
+
+
+-------------------------------------------------------------------------
+
+kubectl expose deployment p-nginx --name=np-service --type=NodePort
+
+kubectl get po -o wide
+kubectl get nodes
+
+
+
+
+
+
+
+
+
+
+
+
+------------------------------------------------------------------
+Q. what is the difference between the 3 on a simpler level. You can expose your service with minimal ClusterIp (within k8s cluster) or larger exposure with NodePort (within cluster external to k8s cluster) or LoadBalancer (external world or whatever you defined in your LB).
+
+ClusterIp exposure < NodePort exposure < LoadBalancer exposure
+
+ClusterIp
+Expose service through k8s cluster with ip/name:port
+NodePort
+Expose service through Internal network VM's also external to k8s ip/name:port
+LoadBalancer
+Expose service through External world or whatever you defined in your LB.
+------------------------------------------------
+
+ref:https://www.bmc.com/blogs/kubernetes-port-targetport-nodeport/
+Using Kubernetes Port, TargetPort, and NodePort
+
+Port configurations for Kubernetes Services
+In Kubernetes there are several different port configurations for Kubernetes services:
+
+Port exposes the Kubernetes service on the specified port within the cluster. Other pods within the cluster can communicate with this server on the specified port.
+TargetPort is the port on which the service will send requests to, that your pod will be listening on. Your application in the container will need to be listening on this port also.
+NodePort exposes a service externally to the cluster by means of the target nodes IP address and the NodePort. NodePort is the default setting if the port field is not specified.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+spec:
+  type: NodePort
+  selector:
+    app: hello-world
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+      nodePort: 30036
+
+kubectl apply -f myservice.yaml
+
+
+
+
+
