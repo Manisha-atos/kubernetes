@@ -1,0 +1,89 @@
+kubectl cluster-info-- info abt k8s
+kubectl version--version k8s
+kubectl get nodes--display all nodes
+kubectl get all--display all objects 
+kubectl get pods--all containers
+kubectl get namespaces
+kubectl get pods -n kube-system
+kubectl get po -o wide  -n kube-system
+kubectl get deployments--templa to create pods 
+kubectl get svc
+kubectl get po -o wide
+kubectl get services
+kubectl get rs
+kubectl --help
+kubectl attach --help
+
+Single container node
+kubectl run p-nginx --image=nginx --port=80
+kubectl run p-nginx1 --image=centos --port=80
+
+kubectl exec -it p-nginx bash
+
+Multicontainer Node
+kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"
+or 
+kubectl create -f "test.yaml"
+
+vi test.yaml
+test.yaml
+=-------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+
+kubectl get po -o wide 
+kubectl get deployment nginx-deployment -o yaml
+kubectl scale deployment nginx-deployment --replicas=7 -->scale up
+kubectl scale deployment nginx-deployment --replicas=2 -->scale down
+kubectl get replicaset
+kubectl delete pod/nginx-deployment-86dcfdf4c6-qv649
+kubectl delete <deplyment name>
+
+Change to the deploment test.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: a-nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+      - name: a-centos
+        image: centos
+
+kubectl apply -f "C:/temp/Kunernetes/nginx-deployment.yaml" 
+kubectl exec -i -t nginx-deployment-7bdd887dd9-ldvr2  --container a-nginx -- /bin/bash
+kubectl exec -i -t my-pod --container main-app -- /bin/bash
