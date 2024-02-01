@@ -398,6 +398,28 @@ https://www.armosec.io/blog/kubernetes-deployment-and-service/
 
 kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"  -->create a deployement
 
+vi pod.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: a-nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
 
 kubectl create -f "pod.yaml" 
 
