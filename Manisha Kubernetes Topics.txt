@@ -1,0 +1,647 @@
+Day 1:
+Container
+==========
+what is container 
+containerization and Virtulization 
+docker hub
+play with docker
+
+Docker is a type of tool which is used to automate the process of application deployment as the lightweight container so that the particular application can work seamlessly in the different types of environments.
+
+docker create container centos
+docker start <container-id>
+docker exec -it <container-id>
+docker stop  <container-id>
+
+or 
+
+docker run --name a-centos -it centos bash
+docker run --name a-nginx -p  1111:80 -d nginx
+
+to create a container we shd have an image 
+demo image ---app+base os+dependencies
+
+Docker network
+==============
+image d4
+docker network ls
+docker network inspect bridge
+bridge --port forwardization required to publish same image. containers can communicate with each other by its Ip address. 
+host --no need of port forwardization, internal port can be used for multiple cotainers 
+none -- can not access container outside the nw
+
+port forwardization:
+image d5
+====================
+docker run --name a-apche -d -p 1111:80 httpd
+docker run --name b-apche -d -p 2222:80 httpd
+docker run --name c-apche -d -p 3333:80 httpd
+docker run --name d-apche -d -p 4444:80 httpd
+
+docker run --name a-nginx -p  1111:80 -d nginx
+docker run --name b-nginx -p  2222:80 -d nginx
+docker run --name c-nginx -p  3333:80 -d nginx
+
+docker exec -it a-nginx bash echo "<h1>Hello A-NgInx Server </h1>" > /usr/share/nginx/html/index.html
+
+Container orchistration:
+========================
+for handling multiple containers(adding/deleting) we need some tool , ie, Container orchistration and Docker swarm and K8s are the tools used for same .
+
+Container orchestration is a process for managing the deployment, integration, scaling, and lifecycles of containerized software and applications in complex, dynamic environments.
+
+Docker Swarm is a cluster , grp of m/c where all container are running . 
+
+The term "swarm" refers to the group of anything e.g., nodes that form a cluster. In the Cluster, all nodes work by co-coordinating with each other, or we can say that all Nodes work as a whole.
+
+It is basically a collection of either virtual machines or physical machines that run the Docker Application. This group of several machines is configured to make a cluster.
+Image:
+
+Here the term "Swarm" comes into play, it is the group that controls all machines available in the Cluster, and every machine that is present or joins the Cluster is considered as a Node.
+
+Ingress network
+=================
+image d7
+In bridge network containers created on one node can not communicate across other nodes so we need to create a ingress network
+create 4 instances 
+step 1:enable docker swarm at 192.168.0.11 (swarm node)
+docker swarm init --advertise-addr=<ip>
+docker swarm init --advertise-addr=192.168.0.28
+docker node ls
+step 2 :add other nodes to docker swarm (192.168.0.13)
+cmd 1:
+docker swarm join-token worker
+o/p:o add a worker to this swarm, run the following command:
+
+    docker swarm join --token SWMTKN-1-52pv2bec08tk7k3915qoxroclmksoesa1mmo8mpzcdun641ok3-ckj5b86q4kgu7uc5sb9mptkjr 192.168.0.11:2377
+docker swarm join --token SWMTKN-1-3zb8zb4ko3cnpqk674n78q1v48xrsjk8gfbnkx2puzrotlvm1i-7jmsun0wxq34gqzleawuqcr71 192.168.0.8:2377
+
+
+TCP port 2377 . This port is used for communication between the nodes of a Docker Swarm or cluster. It only needs to be opened on manager nodes. TCP and UDP port 7946 for communication among nodes (container network discovery
+
+step 3:
+docker node ls 
+step 4:
+docker network ls
+step 5:
+instead of run we can use docker service command.
+
+https://docs.docker.com/engine/swarm/how-swarm-mode-works/services/
+
+Docker Service
+A docker service is a way of managing and deploying docker containers in a distributed environment, such as a swarm of nodes. A docker service acts as a template for creating one or more tasks, which are instances of the service running on different nodes. A docker service can have various options, such as the number of replicas, the network, the port, the CPU and memory limits, and the rolling update policy. A docker service can be created, updated, scaled, removed, or inspected using the docker service.
+
+docker service ls
+docker service create --name p-nginx --replicas=4 -p 4444:80 nginx
+docker service --help
+docker service ps p-nginx
+
+docker service is reponsible for managing the container 
+
+we can access container from any node 
+scaling(create 4 nodes)--no limit to scale 
+=======
+docker service scale p-nginx=6
+docker service ps p-nginx
+will create 6 conatiners acroess 'n' nodes
+image :scale output 1
+
+docker service scale p-nginx=3
+updating the service 
+image:Scale output 2
+Now container is not available on one node out of 4 but still we can access it .
+for ex assume conatiner is not available on node 2 still we can access it.internally node balancing will happen request will get forwarded to the available container.
+image :k2
+
+Orchestration platforms like Kubernetes deploy and manage containers. A load balancer in front of the Docker engine will result in higher availability and scalability of client requests. This ensures uninterrupted performance of the microservices-based applications running inside the container. The ability to update a single microservice without disruption is made possible by load balancing Docker containers. When containers are deployed across a cluster of servers, load balancers running in Docker containers make it possible for multiple containers to be accessed on the same host port.
+
+https://avinetworks.com/glossary/container-load-balancing/
+
+Day 2:
+k8s vs docker
+Kubernetes VPA vs.Fundamentally, the difference between VPA and HPA lies in how they scale. HPA scales by adding or removing pods—thus scaling capacity horizontally. VPA, however, scales by increasing or decreasing CPU and memory resources within the existing pod containers—thus scaling capacity vertically
+image :
+Kubernetes architechture
+Image:what is k8
+master Node--mananging the nodes , addition ,removal of nodes in the cluster.running containers on a node .scheduling 
+
+worker nodes :where application is deployed as containers . on every worker node container engine(docker,cobtainer d ,rkt) need to be installed.docker is most popular so k8s by default uses docker.
+
+1.etcd(meta data abt nodes in k8s cluster):is a key value database ,node details are stored in etcd cluster.
+
+2.kube api-server:through docker cli we are  communicating with docker engine ,exposing the apis to external user to communicate with k8s cluster.It will expose some end points through which user will communicate with k8s cluster .api -server will internally communicate with other componenets of master and worker node. it can be in commandline (cui) or gui.
+
+3.kube controller manager: 2 manager one is node manager and other is replication manager 
+1.node manager is reponsible for if any node is down then where to move the existing container or do it need to add a new node all this is taken care by node manager.
+
+2.replication controller will ensure that at any point of time the replication count shd maintained if we have set it as 4 then it has to be 4
+
+4.kube schedular:
+schedule the containers. when to create , what type of container ,on which worker node it will be deployed is decided by kube schedular.
+
+worker node:
+
+kublet(meta data abt containers on worker nodes)- is like a captain on a ship available on each worker node.hold information abt each node link how many containers running on node , status . kube api internally will communicate with kublet to fetch the data abt the running container on worker node.periodically it will connect with kublet.kube api is periodically getting the heart beats from the kublet. communication is unidirectional .
+Kubelet is an agent component that runs on every node in the cluster. It does not run as a container instead runs as a daemon, managed by systemd.
+
+It is responsible for registering worker nodes with the API server and working with the podSpec (Pod specification – YAML or JSON) primarily from the API server. podSpec defines the containers that should run inside the pod, their resources (e.g. CPU and memory limits), and other settings such as environment variables, volumes, and labels.
+pod-->grp of one or more containers.pod live in worker nodes.
+To put it simply, kubelet is responsible for the following.
+
+Creating, modifying, and deleting containers for the pod.
+Responsible for handling liveliness, readiness, and startup podes.
+Responsible for Mounting volumes by reading pod configuration and creating respective directories on the host for the volume mount.
+Collecting and reporting Node and pod status via calls to the API server.
+
+kube-proxy: container are by default not accessible outside the node. It will ensures all rules are placed to expose the runnng pod so that it will be accessble by other nodes .publishing the continer.unabling communication between containers on different node. 
+for ex database container on one node can communicate with an application deployed on other node.
+
+container runtime engine :docker  . worker node host app in the form of container . to run the container we need container runtime eng
+in K8 eveything is container all componenets are container.etdc , kublet etc..
+
+Images:
+arch image 1,arch image 2,arch image 3
+Note :create 2 master nodes , so that if master node crashes other will be available .
+https://phoenixnap.com/kb/understanding-kubernetes-architecture-diagrams
+https://devopscube.com/kubernetes-architecture-explained/
+https://learnk8s.io/kubernetes-node-size
+https://www.suse.com/c/kubernetes-cluster-vs-master-node/
+https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+Day 3:
+In Kubernetes, containers are packages of applications and execution environments1. Pods are collections of closely-related or tightly coupled containers123. A unit of work in Kubernetes is not a container, but a Pod
+You can define a pod by writing a YAML file that specifies the container in the pod, and how to run it, along with any extras like an attached storage volume or networking parameters2. A container pod allows it to run closely related processes together and provides them with almost the same environment, as if they were all running in a single container while keeping them virtually isolated3.
+
+6 level of abstractions
+==============================
+
+
+1.docker image is a template to create container similarly deployment is a template that is used to create pod(contaier)---pod will live on worker nodes.  manages and create replica set default is 1 , 
+kubctl run is responsible for creating pod.
+
+2.replica set no of replicas. manages and create pod .
+
+depl manages and creates RS---RS mange and  create pods--pods live on worker node -- kublets, kub -proxy, p0d which is nothing but container run time,--container run time is container platform 
+
+3 replica -- 3 pods -- 3 containers
+even if we remove pods replica count can not changed
+
+Kubernetes Objects
+==================
+https://phoenixnap.com/kb/kubernetes-objects
+Containers,
+Pods,
+ReplicaSets 
+Services,
+Secrets,
+ConfigMaps,
+Deployments,
+DaemonSets
+Namesapaces,
+ServiceAccount
+containers are managed by pods ---pods are managed by replica set 
+
+Pod
+=====
+Pods manage containers . we can not run containers directly . they can be run by pods
+Pods
+Kubernetes pods are the smallest unit of deployment in Kubernetes. They reside on cluster nodes and have their IP addresses, enabling them to communicate with the rest of the cluster. A single pod can host one or more containers, providing storage and networking resources.
+Kubernetes automatically replaces each failed pod with a new pod replica and keeps the cluster running.
+
+Each Pod is meant to run a single instance of a given application. If you want to scale your application horizontally (to provide more overall resources by running more instances), you should use multiple Pods, one for each instance. In Kubernetes, this is typically referred to as replication. Replicated Pods are usually created and managed as a group by a workload resource and its controller.
+
+ReplicationControllers
+=======================
+ReplicationControllers ensure that the correct number of pod replicas are running on the cluster at all times. When creating a ReplicationController, the administrator specifies the desired number of pods. The controller then maintains their number, creating additional pods and terminating the extra ones when necessary.
+
+ReplicaSets
+===========
+manage pods
+ReplicaSets serve the same purpose as ReplicationControllers, i.e. maintaining the same number of pod replicas on the cluster.
+
+Services
+========
+Services expose pod  to outside world (3 types of services)cluster IP,loadbalancer,nodePort
+Services provide a way to expose applications running in pods. Their purpose is to represent a set of pods that perform the same function and set the policy for accessing those pods.
+
+Volumes
+========
+Volumes are objects whose purpose is to provide storage to pods. There are two basic types of volumes in Kubernetes:
+Ephemeral volumes persist only during the lifetime of the pod they are tied to.
+Persistent volumes, which are not destroyed when the pod crashes.
+
+ConfigMaps
+==========
+ConfigMaps are Kubernetes objects used to store container configuration data in key-value pairs. By separating configuration data from the rest of the container image, ConfigMaps enable the creation of lighter and more portable images. They also allow developers to use the same code with different configurations depending on whether the app is in the development, testing, or production phase.
+ConfigMaps and Secrets(encrypted pwd) help you configure Pods (configuration  info abt pods ex env var for mysql)
+
+
+Labels 
+======
+are the plumbing that ties everything togethers(communication between different objects)
+
+
+Namespace
+==========
+The purpose of the Namespace object is to act as a separator of resources in the cluster. A single cluster can contain multiple namespaces, allowing administrators to organize the cluster better and simplify resource allocation.
+
+A new cluster comes with multiple namespaces created for system purposes and the default namespace for users. Administrators can create any number of additional namespaces 
+
+
+Deployment
+===========
+Deployments are controller objects that provide instructions on how Kubernetes should manage the pods hosting a containerized application. Using deployments, administrators can:
+
+Scale the number of pod replicas.
+Rollout updated code.
+Perform rollbacks to older code versions.
+
+In Kubernetes, a Deployment is a higher-level abstraction built on top of ReplicaSets. In other words, a Deployment provides a simpler, higher-level interface for managing and scaling applications, while ReplicaSets are the lower-level building blocks that a Deployment uses to achieve this.
+
+When you create a Deployment, you specify the number of replicas(copies) you want to run, the container image to use, and various other details about your Pods. Kubernetes then creates a ReplicaSet and schedules the specified number of replicas of your Pod on the nodes in your cluster.
+
+The ReplicaSet created by the Deployment is responsible for ensuring that the specified number of replicas are running at all times. It is possible that some nodes in the cluster may not have any replicas of the Pod running on them. This is because the ReplicaSet will only ensure that the specified number of replicas are running across the entire cluster, regardless of which nodes they are running on.
+
+DaemonSets
+===========
+DaemonSets are controller objects whose purpose is to ensure that specific pods run on specific (or all) nodes in the cluster. Kubernetes scheduler ignores the pods created by a DaemonSet, so those pods last for as long as the node exists. This object is particularly useful for setting up daemons that need to run on each node, like those used for cluster storage, log collection, and node monitoring.
+
+By default, a DaemonSet creates a pod on every node in the cluster.
+What is a Kubernetes DaemonSet?
+A DaemonSet is a Kubernetes resource that ensures a specified Pod runs on all nodes or a specific subset of nodes in a cluster. DaemonSets are commonly used to deploy special programs that run in the background, performing tasks such as monitoring and logging.
+
+For example, a log collector daemon gathering log data from all the other programs running on a node. A monitoring agent tracking of the node's performance and send alerts if there are any issues.
+
+For instance, assume you have a Kubernetes cluster with three nodes: node 1, node 2, and node 3, and you want to collect logs from all three. You can use the DaemonSet to ensure a replica of a logging Pod runs on all three nodes.
+
+https://kodekloud.com/blog/kubernetes-daemonset/
+
+
+Editor
+https://killercoda.com/playgrounds/scenario/kubernetes
+play with kubernetes
+https://learning.oreilly.com/scenarios/kubernetes-sandbox/9781492062820/
+kubernetes.io/docs
+
+cluser IP  default service
+kubectl --help
+kubectl cluster-info-- info abt k8s
+kubectl version--version k8s
+kubectl get nodes--display all nodes
+kubectl get all--display all objects 
+kubectl get pods--all containers
+kubectl get namespaces 
+kubectl get pods -n kube-system
+kubectl get po -o wide  -n kube-system
+kubectl get deployments--templa to create pods 
+kubectl get svc
+kubectl get po -o wide
+kubectl get services
+kubectl get rs
+kubectl --help
+kubectl attach --help
+Object :
+========
+Object Required Fields
+When the user wants to create a Kubernetes object, the following fields must be provided in the YAML file:
+
+apiVersion - Specifies the version of Kubernetes API for creating the object.
+kind - Provides the object type, for example, Deployment, ReplicaSet, or Service.
+metadata - Lists object identifiers, such as its name, UID, labels, and namespace.
+spec - States the desired state for the object, like the number of replicas and the container image.
+
+
+Creating Pod;
+1. pod with sigle container
+
+A pod is the smallest unit of computing that you can create and manage in Kubernetes. A pod can contain one or more containers that share resources and network. To create a pod, you can use either the kubectl imperative command or the declarative approach with a YAML manifest. Here is an example of both methods:
+
+Using the kubectl imperative command:
+
+kubectl run pod1 --image=nginx
+
+This command creates a new pod named pod1 in the default namespace using the nginx image from the Docker Hub public registry1.
+
+controlplane $ kubectl get po -o wide -n default    
+NAME   READY   STATUS    RESTARTS   AGE     IP            NODE     NOMINATED NODE   READINESS GATES
+pod1   1/1     Running   0          8m29s   192.168.1.4   node01   <none>           <none>
+
+controlplane $ kubectl logs pod1
+
+controlplane $ kubectl describe pods pod1
+
+controlplane $ kubectl exec -it pod1  bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+root@pod1:/# curl localhost:80
+
+
+
+Using the declarative approach with a YAML manifest:
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+  - name: nginx
+    image: nginx:1.14.2
+    ports:
+    - containerPort: 80
+
+This YAML file defines a pod named nginx, running with the nginx image version 1.14.2. You can create the pod by applying the file with the command:
+
+
+
+kubectl apply -f pod.yaml
+
+
+Each Pod is meant to run a single instance of a given application. If you want to scale your application horizontally (to provide more overall resources by running more instances), you should use multiple Pods, one for each instance. In Kubernetes, this is typically referred to as replication. Replicated Pods are usually created and managed as a group by a workload resource and its controller.
+docker service create p1-nginx --replicas=2 -p 1111:80 nginx
+
+kubectl run p-nginx --image=nginx --replicas=2 --port=80 ---error  --pod 
+
+kubectl run p-nginx --image=nginx --port=80
+
+kubectl run p-nginx1 --image=centos --port=80
+
+kubectl attch p-nginx -c a-centos
+
+kubectl run mysql1 --image=mysql --env ="MYSQL_USER" --env="MYSQL_ROOT_PASSWORD=manisha"  --port=3232 
+controlplane $ kubectl run mysql1 --image=mysql --env="MYSQL_USER=user1" --env="MYSQL_ROOT_PASSWORD=manisha"  --port=3232 
+pod/mysql1 created
+
+docker run --name demo-mysql -e MYSQL_ROOT_PASSWORD=manisha -d mysql
+
+
+p-nginx-->pod name
+
+kubectl exec -it p-nginx bash
+
+kubectl exec -it nginx-deployment-7bdd887dd9-ldvr2/containerd://a92cbe11df6afbf8454bddabab4819e5df3ca35b1eaecb9ff66b0836be18f6cc bash
+
+
+kubectl exec -it  containerd://09531f73955772e32c9405dfb23c0943e203a9fc80dec1dc444e324cb4fe5e6a bash
+
+kubectl exec -it nginx-deployment-7bdd887dd9-ldvr2  --container nginx -- /bin/bash -- /bin/bash
+
+
+kubectl exec -it pod/nginx-deployment-86dcfdf4c6-6sx9s bash
+
+
+
+#curl http://localhost:80
+https://kubernetes.io/docs/reference/kubectl/cheatsheet/
+
+
+https://www.armosec.io/blog/kubernetes-deployment-and-service/
+
+
+kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"  -->create a deployement
+
+
+kubectl create -f "pod.yaml" 
+
+
+kubectl apply -f "C:/temp/Kunernetes/nginx-deployment.yaml" 
+
+kubectl attach POD -c b-centos
+
+
+https://phoenixnap.com/kb/kubectl-commands-cheat-sheet
+kubectl get deployment nginx-deployment -o yaml -->read the contenet of yml
+
+kubectl apply -f "https://github.com/Manisha-atos/kubernetes/blob/main/nginx-deployment.yaml"
+
+containerd://a92cbe11df6afbf8454bddabab4819e5df3ca35b1eaecb9ff66b0836be18f6cc
+
+kubectl scale deployment nginx-deployment --replicas=7 -->scale up
+kubectl scale deployment nginx-deployment --replicas=2 -->scale down
+kubectl get all
+kubectl get replicaset
+kubectl delete pod/nginx-deployment-86dcfdf4c6-qv649
+kubectl delete <deplyment name>
+
+kubectl get pods --field-selector=spec.nodeName=node01
+
+
+A replica in Kubernetes is an instance or a copy of a pod. A pod is a basic unit of deployment in Kubernetes that contains one or more containers. A replica is created by a ReplicaSet, which is responsible for maintaining the number of existing pods. A replica can replace a deleted or evicted pod, or distribute the load between multiple pods.
+
+https://www.geeksforgeeks.org/kubernetes-creating-a-replicaset/
+
+kubectl get all --- display all object
+kubectl describe deployment nginx-deployment--details of deployement
+to start a container on pod 
+pod1:
+kubectl exec -it pod/p-nginx <pod id>
+
+kubectl exec -it pod/nginx-deployment 
+ 
+#curl http://localhost:80
+#echo "Hi NgINX" > usr/share/nginx/html/index.html
+curl http://localhost:80
+pod/nginx-deployment-86dcfdf4c6-2n544
+
+cat usr/share/nginx/html/index.html
+pod 1  nginx-deployment-74495cdfc8-2xscb 
+cat  usr/share/nginx/html/index.html
+echo "POD 1....." > usr/share/nginx/html/index.html
+curl http://localhost:80
+
+pod status and container status
+https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
+
+we cannot access pods outside the node to make it available we have to use service.
+
+1. cluster ip: Exposes the service on an internal IP in the cluster. This type makes the service only reachable from within the cluster.(default type) outside the pod.
+
+$kubectl get svc
+$curl http://ip<clusterservice>:80
+2. LoadBalancer:– creates an external load balancer in the current cloud and assigns a external IP to the service.
+3. nodeport: Exposes the service on the same port of each selected Node in the cluster.
+kubectl get svc
+kubectl get po -o wide
+curl http://node01:31000
+
+--type-->specified the type of service if we dont mention defa is custer ip.
+
+Service Demo:
+
+apply 
+namespace 
+pods
+status   
+log
+
+
+
+kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"
+kubectl expose deployment nginx-deployment --type=LoadBalancer --name=ls-service
+kubectl expose deployment nginx-deployment --name=cp-service
+kubectl expose deployment nginx-deployment --type=NodePort --name=np-service
+
+kubectl get svc
+$curl http://<ip address>:80
+
+curl http://10.96.158.104:80
+kubectl get po -o wide
+
+root@controlplane:~$ kubectl get svc
+NAME         TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+cp-service   ClusterIP      10.107.124.155   <none>        80/TCP         11m
+kubernetes   ClusterIP      10.96.0.1        <none>        443/TCP        13m
+ls-service   LoadBalancer   10.99.26.102     <pending>     80:31764/TCP   10m
+np-service   NodePort       10.109.51.88     <none>        80:31925/TCP   11m
+root@controlplane:~$ curl http://node01:31925
+Hi NgINX
+root@controlplane:~$ 
+
+
+curl http://10.107.124.155:80  --cluster IP example
+
+kubectl get svc np-service -service -o wide
+
+
+Day 4:
+
+Types of service
+================
+ClusterIP http://cluster-ip:targetport
+Nodeport http://node-ip:nodeport
+
+1. ClusterIP
+=============
+ClusterIP is the default and most common service type.
+Kubernetes will assign a cluster-internal IP address to ClusterIP service. This makes the service only reachable within the cluster.
+You cannot make requests to service (pods) from outside the cluster.
+You can optionally set cluster IP in the service definition file.
+Use Cases
+Inter service communication within the cluster. For example, communication between the front-end and back-end components of your app.
+
+
+Cluster IP http://cluster-ip:targetport(serviceport)
+
+2.NodePort   https://www.geeksforgeeks.org/kubernetes-nodeport-service/
+============
+service is an extension of ClusterIP service. A ClusterIP Service, to which the NodePort Service routes, is automatically created.
+It exposes the service outside of the cluster by adding a cluster-wide port on top of ClusterIP.
+NodePort exposes the service on each Node’s IP at a static port (the NodePort). Each node proxies that port into your Service. So, external traffic has access to fixed port on each Node. It means any request to your cluster on that port gets forwarded to the service.
+You can contact the NodePort Service, from outside the cluster, by requesting <NodeIP>:<NodePort>.
+Node port must be in the range of 30000–32767. Manually allocating a port to the service is optional. If it is undefined, Kubernetes will automatically assign one.
+If you are going to choose node port explicitly, ensure that the port was not already used by another service.
+Use Cases
+When you want to enable external connectivity to your service.
+Using a NodePort gives you the freedom to set up your own load balancing solution, to configure environments that are not fully supported by Kubernetes, or even to expose one or more nodes’ IPs directly.
+Prefer to place a load balancer above your nodes to avoid node failure.
+
+Nodeport  http://node-ip:nodeport   
+3.LoadBalancer
+===============
+
+LoadBalancer service is an extension of NodePort service. NodePort and ClusterIP Services, to which the external load balancer routes, are automatically created.
+It integrates NodePort with cloud-based load balancers.
+It exposes the Service externally using a cloud provider’s load balancer.
+Each cloud provider (AWS, Azure, GCP, etc) has its own native load balancer implementation. The cloud provider will create a load balancer, which then automatically routes requests to your Kubernetes Service.
+Traffic from the external load balancer is directed at the backend Pods. The cloud provider decides how it is load balanced.
+The actual creation of the load balancer happens asynchronously.
+Every time you want to expose a service to the outside world, you have to create a new LoadBalancer and get an IP address.
+Use Cases
+
+When you are using a cloud provider to host your Kubernetes cluster.
+This type of service is typically heavily dependent on the cloud provider.
+
+LoadBalancer http://external-ip (no need if port bedefault will work on 80 port)
+
+Types of ports
+===============
+1. target port:80 same as container port
+2. service port:80  target port and service port are same
+3. node port:30000-32767
+
+
+
+
+
+when to use Cluster and NodePort:
+=================================
+front end services are exposed using NodePort so that they will be accessible outside the cluster and database pods are using ClusterIP so that they will be only accessible with in the cluster.
+
+
+root@controlplane:~$ kubectl get nodes
+NAME           STATUS   ROLES           AGE   VERSION
+controlplane   Ready    control-plane   49m   v1.26.0
+node01         Ready    <none>          48m   v1.26.0
+root@controlplane:~$ kubectl get nodes -o wide
+NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
+controlplane   Ready    control-plane   49m   v1.26.0   172.31.228.5   <none>        Ubuntu 22.04.2 LTS   5.15.0-72-generic   containerd://1.6.12
+node01         Ready    <none>          48m   v1.26.0   172.31.228.6   <none>        Ubuntu 22.04.2 LTS   5.15.0-72-generic   containerd://1.6.12
+root@controlplane:~$ curl http://172.31.228.6:31925
+
+https://www.geeksforgeeks.org/kubernetes-nodeport-service/ --- to create nodeport service 
+
+kubernetes deployment yaml
+https://kubernetes.io/docs/concepts/workloads/controllers/deployment/
+kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml" -->will create 
+
+kubectl apply -f "https://k8s.io/examples/controllers/nginx-deployment.yaml" -->will create or update 
+
+kubectle describe deployment nginx-deployment
+
+kubectl delete deployment nginx-deployment
+
+create a yaml file 
+touch a.yml
+vi a.yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80
+kubectl apply -f ./mydel.yaml
+kubectl describe deployment nginx-deployment
+
+
+kubectl create -f ./a.yaml
+
+free course:
+https://kubernetes.io/training/
+Kubernetes Deployment Tutorial with YAML - Kubernetes Book (matthewpalmer.net)
+https://semaphoreci.com/blog/replicaset-statefulset-daemonset-deployments
+What Is Kubernetes DaemonSet and How to Use It? (kodekloud.com)
+https://collabnix.github.io/kubelabs/DaemonSet101/
+https://spot.io/resources/kubernetes-autoscaling/kubernetes-daemonset-a-practical-guide/
+https://kodekloud.com/blog/kubernetes-daemonset/
+
+https://medium.com/devops-mojo/kubernetes-service-types-overview-introduction-to-k8s-service-types-what-are-types-of-kubernetes-services-ea6db72c3f8c
+
+
+Volumes
+On-disk files in a container are ephemeral, which presents some problems for non-trivial applications when running in containers. One problem occurs when a container crashes or is stopped. Container state is not saved so all of the files that were created or modified during the lifetime of the container are lost. During a crash, kubelet restarts the container with a clean state. Another problem occurs when multiple containers are running in a Pod and need to share files. It can be challenging to setup and access a shared filesystem across all of the containers. The Kubernetes volume abstraction solves both of these problems. Familiarity with Pods is suggested.
+
+Kubernetes supports many types of volumes. A Pod can use any number of volume types simultaneously. Ephemeral volume types have a lifetime of a pod, but persistent volumes exist beyond the lifetime of a pod. When a pod ceases to exist, Kubernetes destroys ephemeral volumes; however, Kubernetes does not destroy persistent volumes. For any kind of volume in a given pod, data is preserved across container restarts.
+
+https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+
+https://kubernetes.io/docs/tutorials/hello-minikube/
+
+https://teams.microsoft.com/l/message/19:meeting_ZTNjMWQ3YjEtNDk2Ny00MzBhLTgyYWQtM2NiOWIxZGY4OTg4@thread.v2/1702651831878?context=%7B%22contextType%22%3A%22chat%22%7D
+
+
+
+
+
