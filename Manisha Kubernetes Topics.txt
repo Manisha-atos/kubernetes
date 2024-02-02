@@ -167,6 +167,7 @@ https://devopscube.com/kubernetes-architecture-explained/
 https://learnk8s.io/kubernetes-node-size
 https://www.suse.com/c/kubernetes-cluster-vs-master-node/
 https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+
 Day 3:
 In Kubernetes, containers are packages of applications and execution environments1. Pods are collections of closely-related or tightly coupled containers123. A unit of work in Kubernetes is not a container, but a Pod
 You can define a pod by writing a YAML file that specifies the container in the pod, and how to run it, along with any extras like an attached storage volume or networking parameters2. A container pod allows it to run closely related processes together and provides them with almost the same environment, as if they were all running in a single container while keeping them virtually isolated3.
@@ -471,64 +472,19 @@ curl http://localhost:80
 
 pod status and container status
 https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/
-
-we cannot access pods outside the node to make it available we have to use service.
-
-1. cluster ip: Exposes the service on an internal IP in the cluster. This type makes the service only reachable from within the cluster.(default type) outside the pod.
-
-$kubectl get svc
-$curl http://ip<clusterservice>:80
-2. LoadBalancer:– creates an external load balancer in the current cloud and assigns a external IP to the service.
-3. nodeport: Exposes the service on the same port of each selected Node in the cluster.
-kubectl get svc
-kubectl get po -o wide
-curl http://node01:31000
-
---type-->specified the type of service if we dont mention defa is custer ip.
-
-Service Demo:
-
-apply 
-namespace 
-pods
-status   
-log
-
-
-
-kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"
-kubectl expose deployment nginx-deployment --type=LoadBalancer --name=ls-service
-kubectl expose deployment nginx-deployment --name=cp-service
-kubectl expose deployment nginx-deployment --type=NodePort --name=np-service
-
-kubectl get svc
-$curl http://<ip address>:80
-
-curl http://10.96.158.104:80
-kubectl get po -o wide
-
-root@controlplane:~$ kubectl get svc
-NAME         TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
-cp-service   ClusterIP      10.107.124.155   <none>        80/TCP         11m
-kubernetes   ClusterIP      10.96.0.1        <none>        443/TCP        13m
-ls-service   LoadBalancer   10.99.26.102     <pending>     80:31764/TCP   10m
-np-service   NodePort       10.109.51.88     <none>        80:31925/TCP   11m
-root@controlplane:~$ curl http://node01:31925
-Hi NgINX
-root@controlplane:~$ 
-
-
-curl http://10.107.124.155:80  --cluster IP example
-
-kubectl get svc np-service -service -o wide
-
-
 Day 4:
-
+=======
 Types of service
 ================
 ClusterIP http://cluster-ip:targetport
 Nodeport http://node-ip:nodeport
+
+Each pod has its own ip address 
+pods are destroyed frequently and get new ip with service get recereted
+we can get a static ip address to a pod even if it dies with the help of service.
+service has a static ip which access the pod.
+service alos provides load balancing eg if repl is set to 3.
+good abstraction for loose coupling with in the cluster & outside cluster
 
 1. ClusterIP
 =============
@@ -538,6 +494,10 @@ You cannot make requests to service (pods) from outside the cluster.
 You can optionally set cluster IP in the service definition file.
 Use Cases
 Inter service communication within the cluster. For example, communication between the front-end and back-end components of your app.
+Let us say the service is deployed on 3 different nodes every node will have it own ip address and same ip will be used by the pod
+
+kubectl get po-o wide
+
 
 
 Cluster IP http://cluster-ip:targetport(serviceport)
@@ -586,17 +546,29 @@ Types of ports
 when to use Cluster and NodePort:
 =================================
 front end services are exposed using NodePort so that they will be accessible outside the cluster and database pods are using ClusterIP so that they will be only accessible with in the cluster.
+Service Demo:
+=====================
+kubectl create -f "https://k8s.io/examples/controllers/nginx-deployment.yaml"
+kubectl expose deployment nginx-deployment --type=LoadBalancer --name=ls-service
+kubectl expose deployment nginx-deployment --name=cp-service
+kubectl get svc
+kubectl describe service cp-service
+#curl ipaddressservice:80
+or
+#curl nodeipaddress:80
 
+we cannot access a service by node name . to implement this we need to nodeport service.
+kubectl expose deployment nginx-deployment --type=NodePort --name=np-service
+controlplane $ kubectl get svc
+NAME         TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)        AGE
+cp-service   ClusterIP      10.111.239.254   <none>        80/TCP         24m
+kubernetes   ClusterIP      10.96.0.1        <none>        443/TCP        27d
+ls-service   LoadBalancer   10.97.59.95      <pending>     80:31537/TCP   25m
+np-service   NodePort       10.107.49.51     <none>        80:31510/TCP   54s
 
-root@controlplane:~$ kubectl get nodes
-NAME           STATUS   ROLES           AGE   VERSION
-controlplane   Ready    control-plane   49m   v1.26.0
-node01         Ready    <none>          48m   v1.26.0
-root@controlplane:~$ kubectl get nodes -o wide
-NAME           STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION      CONTAINER-RUNTIME
-controlplane   Ready    control-plane   49m   v1.26.0   172.31.228.5   <none>        Ubuntu 22.04.2 LTS   5.15.0-72-generic   containerd://1.6.12
-node01         Ready    <none>          48m   v1.26.0   172.31.228.6   <none>        Ubuntu 22.04.2 LTS   5.15.0-72-generic   containerd://1.6.12
-root@controlplane:~$ curl http://172.31.228.6:31925
+kubectl get po -o wide
+
+#curl node01:31510
 
 https://www.geeksforgeeks.org/kubernetes-nodeport-service/ --- to create nodeport service 
 
@@ -662,6 +634,14 @@ https://kubernetes.io/docs/concepts/storage/persistent-volumes/
 https://kubernetes.io/docs/tutorials/hello-minikube/
 
 https://teams.microsoft.com/l/message/19:meeting_ZTNjMWQ3YjEtNDk2Ny00MzBhLTgyYWQtM2NiOWIxZGY4OTg4@thread.v2/1702651831878?context=%7B%22contextType%22%3A%22chat%22%7D
+
+
+
+
+
+
+
+
 
 
 
